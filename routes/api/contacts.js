@@ -5,6 +5,7 @@ const {
   addContact,
   removeContact,
   updateContact,
+  updateStatusContact
 } = require("../../models/contacts");
 
 const router = express.Router();
@@ -28,7 +29,6 @@ router.get("/:contactId", async (req, res, next) => {
     }
     res.status(200).json(contact);
   } catch (e) {
-    console.log(e);
     next(e);
   }
 });
@@ -45,16 +45,17 @@ const schema = Joi.object({
     .min(5)
     .pattern(/^[0-9-]+$/, "numbers")
     .required(),
+  favorite: Joi.boolean()
 });
 
 router.post("/", async (req, res, next) => {
   try {
+    const { name, email, phone, favorite = false } = req.body;
     const { error } = schema.validate(req.body);
     if (error) {
       return res.status(400).json({ message: "missing required name field" });
     }
-    const { name, email, phone } = req.body;
-    const contact = await addContact(name, email, phone);
+    const contact = await addContact(name, email, phone, favorite);
     res.status(201).json(contact);
   } catch (e) {
     next(e);
@@ -67,8 +68,8 @@ router.delete("/:contactId", async (req, res, next) => {
     const contact = await removeContact(contactId);
     if (!contact) {
       return res.status(404).json({ message: "Not found" });
-    }
-    res.status(204).json({ message: "contact deleted" });
+  }
+    res.json({ message: "Contact deleted" }).status(204);
   } catch (e) {
     next(e);
   }
@@ -81,7 +82,29 @@ router.put("/:contactId", async (req, res, next) => {
     if (error) {
       return res.status(400).json({ message: "missing fields" });
     }
-    const contact = await updateContact(contactId, req.body);
+    const contact = await updateContact(contactId, req.body)
+    // .then(() => 
+    res.status(200).json(contact)
+    // );
+  } catch (e) {
+    res.status(404).json({ message: "Not found" });
+    next(e);
+  }
+});
+
+const schemaFavorite = Joi.object({
+  favorite: Joi.boolean()
+});
+
+router.patch("/:contactId/favorite", async (req, res, next) => {
+  try {
+    const { contactId } = req.params;
+    const { error } = schemaFavorite.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: "missing field favorite" });
+    }
+    const contact = await updateStatusContact(contactId, req.body);
+    console.log(contact);
     res.status(200).json(contact);
   } catch (e) {
     next(e);
