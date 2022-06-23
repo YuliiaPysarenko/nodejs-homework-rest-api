@@ -1,9 +1,5 @@
-// const { v4: uuidv4 } = require("uuid");
 const { Schema, model } = require("mongoose");
-
-const bcrypt = require("bcrypt");
-// const myPlaintextPassword = "s0//P4$$w0rD";
-// const someOtherPlaintextPassword = "not_bacon";
+const bCrypt = require("bcrypt");
 
 const userSchema = new Schema({
   password: {
@@ -23,35 +19,14 @@ const userSchema = new Schema({
   token: String,
 });
 
-const Users = model("User", userSchema);
-
-const addUser = async (email, password) => {
-  try {
-    const hashedPassword = bcrypt.hash(password, 10, function (err, hash) {
-      if (err) {
-        throw err;
-      }
-      return hash; // Store hash in your password DB.
-    });
-
-    const newUser = {
-      email,
-      password: hashedPassword,
-    };
-
-    return await Users.create(newUser).catch((err) =>
-      console.log("addUser: ", err)
-    );
-  } catch (e) {
-    console.log(e);
-  }
+userSchema.methods.setPassword = function(password) {
+  this.password = bCrypt.hashSync(password, bCrypt.genSaltSync(6));
 };
 
-const findUser = async (email) => {
-    return await Users.findOne({email})
-}
-
-module.exports = {
-  addUser,
-  findUser
+userSchema.methods.validPassword = function(password) {
+  return bCrypt.compareSync(password, this.password);
 };
+
+const User = model("User", userSchema);
+
+module.exports = User;
