@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 
 require('dotenv').config()
-console.log(process.env)
 
 const PORT = process.env.PORT || 3000;
 const uriDb = process.env.DB_HOST;
