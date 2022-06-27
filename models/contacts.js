@@ -18,11 +18,9 @@ const contactSchema = new Schema({
   },
   owner: {
     type: Schema.Types.ObjectId,
-    ref: 'user',
+    ref: 'users',
   }
 });
-
-const Contacts = model("Contacts", contactSchema);
 
 // validation
 
@@ -40,6 +38,8 @@ const schema = Joi.object({
     .required(),
   favorite: Joi.boolean(),
 });
+
+const Contacts = model("Contacts", contactSchema);
 
 const schemaFavorite = Joi.object({
   favorite: Joi.boolean(),
