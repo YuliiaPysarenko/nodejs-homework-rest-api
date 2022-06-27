@@ -73,9 +73,22 @@ const currentUser = async (req, res, next) => {
   }
 };
 
+const subscriptionUpdate = async (req, res, next) => {
+  try {
+    const { email } = req.user;
+    const user = await User.findOne({ email });
+    const updatedUser = await User.findByIdAndUpdate(user._id, {subscription: "pro"});
+    res.status(200).json({ message: `Congrats! You subscription plan is ${updatedUser.subscription} now.` });
+  } catch (e) {
+    res.status(401).json({ message: "Not authorized" });
+    next(e);
+  }
+}
+
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
   currentUser,
+  subscriptionUpdate
 };

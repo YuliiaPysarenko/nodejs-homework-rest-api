@@ -1,32 +1,53 @@
 const { Contacts } = require("../models/contacts");
 
-const getAll = async (query) => {
-  const { page, limit } = query;
+const getAll = async (query, id) => {
+  const { page, limit, favorite } = query;
   const skipped = (page - 1) * limit;
   const skip = skipped < 0 ? 0 : skipped;
 
-  return Contacts.find({}, {}, { skip, limit: +limit }).populate("owner", "user");
+  if (!favorite) {
+    return Contacts.find({ owner: id }, {}, { skip, limit: +limit });
+  }
+
+  return Contacts.find(
+    { owner: id, favorite: favorite },
+    {},
+    { skip, limit: +limit }
+  );
 };
 
-const getById = async (id) => {
-  return Contacts.findById(id);
+const getById = async (contactId, userId) => {
+  const contact = await Contacts.findById(contactId);
+  return contact.owner.valueOf() === userId ? contact : null;
 };
 
 const create = async (contact, id) => {
   return Contacts.create({ ...contact, owner: id });
 };
 
-const updateById = async (id, contact) => {
-  return Contacts.findByIdAndUpdate(id, contact, { new: true });
+const updateById = async (userId, contactId, contact) => {
+  const existedContact = await Contacts.findById(contactId);
+  if (existedContact.owner.valueOf() === userId.valueOf()) {
+    return Contacts.findByIdAndUpdate(contactId, contact, { new: true });
+  }
+  return null;
 };
 
-const updateStatusById = async (id, contact) => {
-    const { favorite } = contact;
-  return Contacts.findByIdAndUpdate(id, { favorite }, { new: true });
+const updateStatusById = async (userId, contactId, contact) => {
+  const { favorite } = contact;
+  const existedContact = await Contacts.findById(contactId);
+  if (existedContact.owner.valueOf() === userId.valueOf()) {
+    return Contacts.findByIdAndUpdate(contactId, { favorite }, { new: true });
+  }
+  return null;
 };
 
-const deleteById = async (id) => {
-  return Contacts.findByIdAndDelete(id);
+const deleteById = async (userId, contactId) => {
+  const existedContact = await Contacts.findById(contactId);
+  if (existedContact.owner.valueOf() === userId.valueOf()) {
+    return Contacts.findByIdAndDelete(contactId);
+  }
+  return null;
 };
 
 module.exports = {
