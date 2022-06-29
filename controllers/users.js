@@ -1,7 +1,10 @@
-const { User } = require("../models/users");
-const { JWT_SECRET } = require("../helpers/env");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
+const { User } = require("../models/users");
+const { JWT_SECRET } = require("../helpers/env");
+const { uploadImage } = require("../services");
+const { updateUser } = require("../services/users.service");
 
 const registerUser = async (req, res, next) => {
   try {
@@ -11,9 +14,12 @@ const registerUser = async (req, res, next) => {
       return res.status(409).json({ message: "Email is already in use." });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
+    const profileUrl = await gravatar.profile_url(email);
+
     const user = await User.create({
       ...{ email, password },
       password: hashedPassword,
+      avatarURL: profileUrl,
     });
 
     res.status(201).json({
@@ -77,18 +83,36 @@ const subscriptionUpdate = async (req, res, next) => {
   try {
     const { email } = req.user;
     const user = await User.findOne({ email });
-    const updatedUser = await User.findByIdAndUpdate(user._id, {subscription: "pro"});
-    res.status(200).json({ message: `Congrats! You subscription plan is ${updatedUser.subscription} now.` });
+    const updatedUser = await User.findByIdAndUpdate(user._id, {
+      subscription: "pro",
+    });
+    res.status(200).json({
+      message: `Congrats! You subscription plan is ${updatedUser.subscription} now.`,
+    });
   } catch (e) {
     res.status(401).json({ message: "Not authorized" });
     next(e);
   }
-}
+};
+
+const updateAvatar = async (req, res, next) => {
+  try {
+    const { _id: id } = req.user;
+    const avatarURL = await uploadImage(id, req.file);
+    await updateUser(id, { avatarURL });
+
+    res.json({ avatarURL });
+  } catch (e) {
+    console.log(e);
+    next(e);
+  }
+};
 
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
   currentUser,
-  subscriptionUpdate
+  subscriptionUpdate,
+  updateAvatar,
 };

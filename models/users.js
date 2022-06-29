@@ -18,6 +18,7 @@ const userSchema = new Schema({
     default: "starter",
   },
   token: String,
+  avatarURL: String,
 });
 
 const schema = Joi.object({
