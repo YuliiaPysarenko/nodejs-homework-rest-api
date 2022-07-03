@@ -5,7 +5,9 @@ const {
   logoutUser,
   currentUser,
   subscriptionUpdate,
-  updateAvatar
+  updateAvatar,
+  confirmEmail,
+  resend
 } = require("../../controllers/users");
 const { authCheck, validateRequest } = require("../../middlewares");
 const upload = require("../../middlewares/upload");
@@ -17,6 +19,8 @@ router.post("/register", validateRequest(schema), registerUser);
 router.post("/login", validateRequest(schema), loginUser);
 router.post("/logout", authCheck, logoutUser);
 router.get("/current", authCheck, currentUser);
+router.get("/verify/:verificationToken", confirmEmail);
+router.post("/verify", resend);
 router.patch("/avatars", authCheck, upload.single('avatar'), updateAvatar);
 router.patch("/", authCheck, subscriptionUpdate);
 

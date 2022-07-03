@@ -1,6 +1,7 @@
 const { Schema, model } = require("mongoose");
 const bCrypt = require("bcrypt");
 const Joi = require("joi");
+const gravatar = require("gravatar");
 
 const userSchema = new Schema({
   password: {
@@ -18,7 +19,20 @@ const userSchema = new Schema({
     default: "starter",
   },
   token: String,
-  avatarURL: String,
+  avatarURL: {
+    type: String,
+    default: function () {
+      return gravatar.url(this.email, {}, true);
+    },
+  },
+  verify: {
+    type: Boolean,
+    default: false,
+  },
+  verificationToken: {
+    type: String,
+    required: [true, "Verify token is required"],
+  },
 });
 
 const schema = Joi.object({

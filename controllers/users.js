@@ -3,8 +3,9 @@ const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
 const { User } = require("../models/users");
 const { JWT_SECRET } = require("../helpers/env");
-const { uploadImage } = require("../services");
-const { updateUser } = require("../services/users.service");
+const { v4: uuidv4 } = require("uuid");
+const { uploadImage, sendEmail } = require("../services");
+const { updateUser, findUser } = require("../services/users.service");
 
 const registerUser = async (req, res, next) => {
   try {
@@ -13,14 +14,14 @@ const registerUser = async (req, res, next) => {
     if (result) {
       return res.status(409).json({ message: "Email is already in use." });
     }
+    const verificationToken = uuidv4();
     const hashedPassword = await bcrypt.hash(password, 10);
     const profileUrl = await gravatar.profile_url(email);
 
-    const user = await User.create({
-      ...{ email, password },
-      password: hashedPassword,
-      avatarURL: profileUrl,
-    });
+    const user = { email, password: hashedPassword, avatarURL: profileUrl, verificationToken };
+
+    await User.create(user);
+    await sendEmail(user.email, user.verificationToken);
 
     res.status(201).json({
       email: user.email,
@@ -31,6 +32,49 @@ const registerUser = async (req, res, next) => {
     next(e);
   }
 };
+
+const confirmEmail = async (req, res, next) => {
+  try {
+    const { verificationToken } = req.params;
+    console.log(verificationToken);
+    const user = await findUser({ verificationToken });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await updateUser(user._id, { verify: true, verificationToken: null });
+    return res.status(200).json({
+      code: 200,
+      message: "Email was confirmed",
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+
+
+const resend = async (req, res, next) => {
+  try {
+      const {email} = req.body;
+      const user = await findUser({email});
+      if(!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if(user.verify) {
+          return res.status(400).json({ message: "Verification has already been passed"});
+      }
+      await sendEmail(user.email, user.verificationToken);
+      return res.status(200).json({
+          code: 200,
+          message: 'Verification email sent'
+      });
+  } catch (e) {
+      next(e);
+  }
+}
 
 const loginUser = async (req, res, next) => {
   try {
@@ -111,8 +155,10 @@ const updateAvatar = async (req, res, next) => {
 module.exports = {
   registerUser,
   loginUser,
+  subscriptionUpdate,
+  resend,
   logoutUser,
   currentUser,
-  subscriptionUpdate,
   updateAvatar,
+  confirmEmail,
 };
